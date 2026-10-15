@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LogicLab</title>
+  <meta name="description" content="Browser-based digital logic simulator: logic gates, Boolean expressions, truth tables, Karnaugh map simplification and combinational circuits.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap header-row">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 24" width="36" height="27" aria-hidden="true">
+          <path d="M1,1 H14 A11,11 0 0 1 14,23 H1 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M25,12 H31" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="M1,7 H-3 M1,17 H-3" fill="none" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <div>
+          <h1 class="brand-name">LogicLab</h1>
+          <p class="brand-sub">Digital logic design, checked instantly</p>
+        </div>
+      </div>
+      <button class="btn ghost" id="theme-toggle" type="button" aria-label="Switch colour theme">Theme</button>
+    </div>
+    <div class="wrap">
+      <nav class="tabs" role="tablist" aria-label="Simulator sections">
+        <button class="tab" role="tab" id="tabbtn-gates" data-tab="gates" aria-controls="tab-gates" aria-selected="true" type="button">Gates</button>
+        <button class="tab" role="tab" id="tabbtn-expr" data-tab="expr" aria-controls="tab-expr" aria-selected="false" tabindex="-1" type="button">Expressions</button>
+        <button class="tab" role="tab" id="tabbtn-kmap" data-tab="kmap" aria-controls="tab-kmap" aria-selected="false" tabindex="-1" type="button">K-map</button>
+        <button class="tab" role="tab" id="tabbtn-circuits" data-tab="circuits" aria-controls="tab-circuits" aria-selected="false" tabindex="-1" type="button">Circuits</button>
+        <button class="tab" role="tab" id="tabbtn-convert" data-tab="convert" aria-controls="tab-convert" aria-selected="false" tabindex="-1" type="button">Number systems</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+
+    <!-- ============ GATES ============ -->
+    <section class="panel" id="tab-gates" role="tabpanel" aria-labelledby="tabbtn-gates">
+      <div class="panel-head">
+        <h2>Gate explorer</h2>
+        <p class="lede">Pick a gate, then click the input switches. Wires carrying a 1 are drawn thick and dark, and the matching row of the truth table lights up.</p>
+      </div>
+      <div class="seg" id="gate-picker" role="group" aria-label="Choose a gate"></div>
+      <div class="split">
+        <div class="card">
+          <div class="diagram" id="gate-view"></div>
+          <p class="blurb" id="gate-blurb"></p>
+          <p class="eq"><code id="gate-expr"></code></p>
+        </div>
+        <div class="card">
+          <h3>Truth table</h3>
+          <div class="table-scroll" id="gate-table"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EXPRESSIONS ============ -->
+    <section class="panel" id="tab-expr" role="tabpanel" aria-labelledby="tabbtn-expr" hidden>
+      <div class="panel-head">
+        <h2>Expression to truth table</h2>
+        <p class="lede">Type a Boolean expression. LogicLab parses it, builds the truth table, simplifies it with Quine-McCluskey and draws the gate circuit.</p>
+      </div>
+
+      <div class="card">
+        <label class="label" for="expr-input">Expression</label>
+        <div class="input-row">
+          <input class="text-input mono" id="expr-input" type="text" value="A.B + A'.C" spellcheck="false" autocomplete="off" autocapitalize="off">
+          <button class="btn primary" id="expr-run" type="button">Evaluate</button>
+        </div>
+        <div class="chips" id="expr-examples" aria-label="Example expressions"></div>
+
+        <details class="help">
+          <summary>Syntax guide</summary>
+          <div class="table-scroll">
+            <table class="plain">
+              <thead><tr><th>Operation</th><th>Write it as</th></tr></thead>
+              <tbody>
+                <tr><td>NOT</td><td><code>A'</code> &nbsp; <code>!A</code> &nbsp; <code>~A</code> &nbsp; <code>NOT A</code></td></tr>
+                <tr><td>AND</td><td><code>A.B</code> &nbsp; <code>A*B</code> &nbsp; <code>A&amp;B</code> &nbsp; <code>AB</code> &nbsp; <code>A AND B</code></td></tr>
+                <tr><td>OR</td><td><code>A+B</code> &nbsp; <code>A|B</code> &nbsp; <code>A OR B</code></td></tr>
+                <tr><td>XOR</td><td><code>A^B</code> &nbsp; <code>A⊕B</code> &nbsp; <code>A XOR B</code></td></tr>
+                <tr><td>NAND, NOR, XNOR</td><td><code>A NAND B</code> &nbsp; <code>A NOR B</code> &nbsp; <code>A XNOR B</code></td></tr>
+                <tr><td>Constants</td><td><code>0</code> and <code>1</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="hint">Variables are single letters A to Z, so <code>ABC</code> means A·B·C. Precedence from highest to lowest: NOT, AND, XOR, OR. Use up to 6 different variables.</p>
+        </details>
+
+        <div class="error" id="expr-error" role="alert" hidden></div>
+      </div>
+
+      <div id="expr-results" hidden>
+        <div class="split">
+          <div class="card">
+            <h3>Truth table</h3>
+            <p class="hint" id="expr-parsed"></p>
+            <div class="table-scroll tall" id="expr-table"></div>
+          </div>
+          <div class="stack">
+            <div class="card">
+              <h3>Forms</h3>
+              <dl class="forms" id="expr-forms"></dl>
+              <div class="actions" id="expr-actions"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>Circuit</h3>
+            <div class="seg small" id="expr-circuit-mode" role="group" aria-label="Which form to draw">
+              <button type="button" data-mode="typed" aria-pressed="true">As typed</button>
+              <button type="button" data-mode="sop" aria-pressed="false">Simplified SOP</button>
+            </div>
+          </div>
+          <p class="hint">Click the switches on the left to try input values.</p>
+          <div class="diagram scroll" id="expr-circuit-view"></div>
+          <p class="notice" id="expr-circuit-msg" hidden></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ K-MAP ============ -->
+    <section class="panel" id="tab-kmap" role="tabpanel" aria-labelledby="tabbtn-kmap" hidden>
+      <div class="panel-head">
+        <h2>Karnaugh map solver</h2>
+        <p class="lede">Click cells (0, then 1, then X for don't care) or type minterm numbers. The simplified expression comes from Quine-McCluskey, and the groups are drawn on the map.</p>
+      </div>
+
+      <div class="card">
+        <div class="controls">
+          <div class="field">
+            <span class="label" id="kmap-n-label">Variables</span>
+            <div class="seg" id="kmap-n" role="group" aria-labelledby="kmap-n-label">
+              <button type="button" data-n="2" aria-pressed="false">2</button>
+              <button type="button" data-n="3" aria-pressed="false">3</button>
+              <button type="button" data-n="4" aria-pressed="true">4</button>
+            </div>
+          </div>
+          <div class="field grow">
+            <label class="label" for="kmap-minterms">Minterms (output = 1)</label>
+            <input class="text-input mono" id="kmap-minterms" type="text" placeholder="e.g. 0, 1, 2, 5" spellcheck="false" autocomplete="off">
+          </div>
+          <div class="field grow">
+            <label class="label" for="kmap-dcs">Don't cares (X)</label>
+            <input class="text-input mono" id="kmap-dcs" type="text" placeholder="e.g. 9, 14" spellcheck="false" autocomplete="off">
+          </div>
+        </div>
+        <div class="chips" id="kmap-examples" aria-label="Example functions"></div>
+        <div class="error" id="kmap-error" role="alert" hidden></div>
+      </div>
+
+      <div class="split">
+        <div class="card">
+          <div class="card-head">
+            <h3>Map</h3>
+            <div class="seg small" id="kmap-mode" role="group" aria-label="What to group">
+              <button type="button" data-mode="sop" aria-pressed="true">Group 1s (SOP)</button>
+              <button type="button" data-mode="pos" aria-pressed="false">Group 0s (POS)</button>
+            </div>
+          </div>
+          <div class="diagram scroll" id="kmap-view"></div>
+          <ul class="legend" id="kmap-legend"></ul>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <h3>Result</h3>
+            <dl class="forms" id="kmap-result"></dl>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CIRCUITS ============ -->
+    <section class="panel" id="tab-circuits" role="tabpanel" aria-labelledby="tabbtn-circuits" hidden>
+      <div class="panel-head">
+        <h2>Standard circuits</h2>
+        <p class="lede">Adders, multiplexers and a decoder, built from the same gate functions. Click the inputs and follow the signal through the circuit.</p>
+      </div>
+      <div class="seg" id="circuit-picker" role="group" aria-label="Choose a circuit"></div>
+      <div class="card">
+        <div class="diagram scroll" id="circuit-view"></div>
+        <p class="blurb" id="circuit-blurb"></p>
+        <ul class="eq-list" id="circuit-eqs"></ul>
+      </div>
+      <div class="card">
+        <h3>Truth table</h3>
+        <div class="table-scroll tall" id="circuit-table"></div>
+      </div>
+    </section>
+
+    <!-- ============ NUMBER SYSTEMS ============ -->
+    <section class="panel" id="tab-convert" role="tabpanel" aria-labelledby="tabbtn-convert" hidden>
+      <div class="panel-head">
+        <h2>Number systems</h2>
+        <p class="lede">Convert an unsigned number between binary, octal, decimal and hexadecimal.</p>
+      </div>
+      <div class="card">
+        <div class="controls">
+          <div class="field grow">
+            <label class="label" for="conv-input">Number</label>
+            <input class="text-input mono" id="conv-input" type="text" value="1011 0110" spellcheck="false" autocomplete="off" autocapitalize="characters">
+          </div>
+          <div class="field">
+            <label class="label" for="conv-base">Entered in</label>
+            <select class="text-input" id="conv-base">
+              <option value="2" selected>Binary (base 2)</option>
+              <option value="8">Octal (base 8)</option>
+              <option value="10">Decimal (base 10)</option>
+              <option value="16">Hexadecimal (base 16)</option>
+            </select>
+          </div>
+        </div>
+        <div class="error" id="conv-error" role="alert" hidden></div>
+      </div>
+      <div class="card" id="conv-card">
+        <dl class="forms" id="conv-result"></dl>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/logic.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/qm.js"></script>
+  <script src="js/netlist.js"></script>
+  <script src="js/circuits.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
